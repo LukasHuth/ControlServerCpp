@@ -7,84 +7,75 @@
 using namespace std;
 
 /*
-
 Client:
 	https://youtu.be/0Zr_0Jy8mWE
-
 */
 
 int main()
 {
-	//Initialze winsock
-	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-	SetConsoleTextAttribute(hConsole, 10);
-	bool conn = false;
-	WSADATA wsData;
+	string errs = ["Cant't Intialize winsock! Quitting", "Can't create a socket! Quitting"];
+	HANDLE hC = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleTextAttribute(hC, 10);
+	bool cn = false;
+	WSADATA wsad;
 	WORD ver = MAKEWORD(2, 2);
 	SetConsoleTitle("*server*");
-	int wsOk = WSAStartup(ver, &wsData);
-	if (wsOk != 0)
+	int wsas = WSAStartup(ver, &wsad);
+	if (wsas != 0)
 	{
-		cerr << "Cant't Intialize winsock! Quitting" << endl;
+		cerr << errs[0] << endl;
 		return 0;
 	}
 
-	// create a socket
-	SOCKET listening = socket(AF_INET, SOCK_STREAM, 0);
-	if (listening == INVALID_SOCKET)
+	SOCKET sl = socket(AF_INET, SOCK_STREAM, 0);
+	if (sl == INVALID_SOCKET)
 	{
-		cerr << "Can't create a socket! Quitting" << endl;
+		cerr << errs[1] << endl;
 		return 0;
 	}
 
-	// Bind the ip address and port to a socket
+	sockaddr_in sain;
+	sain.sin_family = AF_INET;
+	sain.sin_port = htons(54000);
+	sain.sin_addr.S_un.S_addr = INADDR_ANY;
 
-	sockaddr_in hint;
-	hint.sin_family = AF_INET;
-	hint.sin_port = htons(54000);
-	hint.sin_addr.S_un.S_addr = INADDR_ANY;
+	bind(sl, (sockaddr*)&sain, sizeof(sain));
 
-	bind(listening, (sockaddr*)&hint, sizeof(hint));
+	listen(sl, SOMAXCONN);
 
-	// Tell Winsock the socket is for listening
-	listen(listening, SOMAXCONN);
+	sockaddr_in cl;
 
-	// Wait for a connection
-	sockaddr_in client;
+	int clsi = sizeof(cl);
 
-	int clientSize = sizeof(client);
-
-	SOCKET clientSocket = accept(listening, (sockaddr*)&client, &clientSize);
+	SOCKET clso = accept(sl, (sockaddr*)&cl, &clsi);
 
 	char host[NI_MAXHOST];
-	char service[NI_MAXHOST];
+	char sv[NI_MAXHOST];
 
 	ZeroMemory(host, NI_MAXHOST);
-	ZeroMemory(service, NI_MAXHOST);
-	string thisHost;
-	string thisService;
-	if (getnameinfo((sockaddr*)&client, sizeof(client), host, NI_MAXHOST, service, NI_MAXSERV, 0) == 0)
+	ZeroMemory(sv, NI_MAXHOST);
+	string tHost;
+	string tsv;
+	if (getnameinfo((sockaddr*)&cl, sizeof(cl), host, NI_MAXHOST, sv, NI_MAXSERV, 0) == 0)
 	{
-		cout << host << " connected on port " << service << endl;
-		conn = true;
-		thisHost = host;
-		thisService = service;
+		cout << host << " connected on port " << sv << endl;
+		cn = true;
+		tHost = host;
+		tsv = sv;
 	}
 	else
 	{
-		inet_ntop(AF_INET, &client.sin_addr, host, NI_MAXHOST);
-		cout << host << " connected on port " << ntohs(client.sin_port) << endl;
-		conn = true;
-		thisHost = host;
-		thisService = service;
+		inet_ntop(AF_INET, &cl.sin_addr, host, NI_MAXHOST);
+		cout << host << " connected on port " << ntohs(cl.sin_port) << endl;
+		cn = true;
+		tHost = host;
+		tsv = sv;
 	}
 
-	//Close listening socket
-	closesocket(listening);
+	closesocket(sl);
 
-	//While loop: accept and echo message back to client
 	char buf[4096];
-	string userInput;
+	string ui;
 	bool wh = true;
 	cout << "Commands:" << endl << endl;
 	cout << "echo title [title]" << endl;
@@ -99,49 +90,46 @@ int main()
 	cout << "reload" << endl;
 	cout << "shutdown" << endl;
 	cout << endl;
-	string exit_user = "exit_user";
+	string eu = "exit_user";
 	do
 	{
 		cout << "> ";
-		getline(cin, userInput);
+		getline(cin, ui);
 
-		if (userInput == "exit") {
-			send(clientSocket, exit_user.c_str(), exit_user.size() + 1, 0);
-			closesocket(clientSocket);
+		if (ui == "exit") {
+			send(clsi, eu.c_str(), eu.size() + 1, 0);
+			closesocket(clso);
 			WSACleanup();
 			system("cls");
 			return 0;
 		}
-		else if (userInput == "reload")
+		else if (ui == "reload")
 		{
-			closesocket(clientSocket);
+			closesocket(clso);
 			WSACleanup();
 			system("cls");
 			return main();
 		}
 
-		if (userInput.size() > 0)
+		if (ui.size() > 0)
 		{
-			int sendResult = send(clientSocket, userInput.c_str(), userInput.size() + 1, 0);
+			int sendResult = send(clso, ui.c_str(), ui.size() + 1, 0);
 			if (sendResult != SOCKET_ERROR)
 			{
-				// Wait for response
 				ZeroMemory(buf, 4096);
-				if (userInput == "exit_user")
+				if (ui == "exit_user")
 				{
-					closesocket(clientSocket);
+					closesocket(clso);
 					WSACleanup();
 					system("cls");
 					return main();
 				}
 			}
 		}
-	} while (userInput.size() > 0);
+	} while (ui.size() > 0);
 
-	// Close the Socket
-	closesocket(clientSocket);
+	closesocket(clso);
 
-	// Shutdown winsock
 	WSACleanup();
 	return 0;
 }
