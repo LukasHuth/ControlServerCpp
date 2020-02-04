@@ -6,11 +6,6 @@
 
 using namespace std;
 
-/*
-Client:
-	https://youtu.be/0Zr_0Jy8mWE
-*/
-
 int main()
 {
 	string errs = ["Cant't Intialize winsock! Quitting", "Can't create a socket! Quitting"];
